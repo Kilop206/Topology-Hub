@@ -1,90 +1,36 @@
-# =========================
-# Java
-# =========================
-*.class
-*.log
-*.ctxt
-
-# JVM crash logs
-hs_err_pid*
-replay_pid*
-
-# =========================
-# Build tools
-# =========================
-
-# Maven
+HELP.md
 target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
-# Gradle
-.gradle/
-build/
-
-# Wrapper
-!gradle/wrapper/gradle-wrapper.jar
-
-# =========================
-# Packages
-# =========================
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# =========================
-# Environment variables
-# =========================
-.env
-.env.*
-
-# =========================
-# IDEs
-# =========================
-
-# IntelliJ / JetBrains
-.idea/
-*.iml
-
-# VSCode
-.vscode/
-
-# Eclipse
-.project
+### STS ###
+.apt_generated
 .classpath
-.settings/
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 
-# NetBeans
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
 
-# =========================
-# OS files
-# =========================
+### VS Code ###
+.vscode/
 
-# Windows
-Thumbs.db
-
-# macOS
-.DS_Store
-
-# Linux
-*~
-
-# =========================
-# Temporary files
-# =========================
-tmp/
-temp/
-out/
-
-# =========================
-# Logs
-# =========================
-logs/
-*.tmp
+### Env ###
+.env
