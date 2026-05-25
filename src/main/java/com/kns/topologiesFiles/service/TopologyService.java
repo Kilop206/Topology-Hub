@@ -11,6 +11,7 @@ import com.kns.topologiesFiles.mapper.TopologyMapper;
 import com.kns.topologiesFiles.model.Topology;
 import com.kns.topologiesFiles.model.TopologyStorage;
 
+import com.kns.topologiesFiles.model.User;
 import com.kns.topologiesFiles.repo.TopologyRepo;
 import com.kns.topologiesFiles.repo.TopologyStorageRepo;
 
@@ -34,13 +35,16 @@ public class TopologyService {
 
     private final TopologyStorageRepo storageRepo;
 
+    private final AuthenticatedUserService authenticatedUserService;
+
     public TopologyService(
             TopologyRepo repo,
-            TopologyStorageRepo storageRepo
+            TopologyStorageRepo storageRepo, AuthenticatedUserService authenticatedUserService
     ) {
 
         this.repo = repo;
         this.storageRepo = storageRepo;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
     /*
@@ -81,11 +85,19 @@ public class TopologyService {
                                 .build()
                 );
 
+        User user =
+                authenticatedUserService
+                        .getAuthenticatedUser();
+
         Topology topology =
                 Topology.builder()
                         .name(name)
                         .description(description)
                         .publicTopology(publicTopology)
+
+                        .ownerId(user.getId())
+                        .ownerUsername(user.getUsername())
+
                         .storageId(storage.getId())
                         .fileName(file.getOriginalFilename())
                         .fileSize(file.getSize())
@@ -114,7 +126,7 @@ public class TopologyService {
     /*
      * GET BY ID
      */
-    public TopologyCreateResponseDto getById(
+    public TopologyCreateResponseDto getTopologyById(
             String id
     ) {
 
@@ -205,14 +217,15 @@ public class TopologyService {
     /*
      * DOWNLOAD
      */
-    public ResponseEntity<byte[]> downloadTopology(
+    public ResponseEntity<byte[]>
+    downloadTopology(
             String id
     ) {
 
         Topology topology =
                 repo.findById(id)
                         .orElseThrow(
-                                () -> new ResourceNotFoundException(
+                                () -> new RuntimeException(
                                         "Topology not found"
                                 )
                         );
@@ -222,21 +235,47 @@ public class TopologyService {
                                 topology.getStorageId()
                         )
                         .orElseThrow(
-                                () -> new ResourceNotFoundException(
+                                () -> new RuntimeException(
                                         "Storage not found"
                                 )
                         );
 
         return ResponseEntity.ok()
+
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\""
-                                + topology.getFileName()
-                                + "\""
+                        "attachment; filename=\"" +
+                                topology.getFileName() +
+                                "\""
                 )
+
+                .header(
+                        HttpHeaders.CONTENT_LENGTH,
+                        String.valueOf(
+                                storage.getData().length
+                        )
+                )
+
                 .contentType(
                         MediaType.APPLICATION_OCTET_STREAM
                 )
+
                 .body(storage.getData());
+    }
+
+    public List<TopologyCreateResponseDto>
+    getPublicTopologiesByUsername(
+            String username
+    ) {
+
+        return repo
+                .findByOwnerUsernameAndPublicTopologyTrue(
+                        username
+                )
+                .stream()
+                .map(
+                        TopologyMapper::toCreateResponse
+                )
+                .toList();
     }
 }

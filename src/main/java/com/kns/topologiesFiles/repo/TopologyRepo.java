@@ -15,4 +15,10 @@ public interface TopologyRepo
     List<Topology> findByNameContainingIgnoreCase(
             String name
     );
+
+    List<Topology>
+    findByOwnerUsernameAndPublicTopologyTrue(
+            String ownerUsername
+    );
+
 }

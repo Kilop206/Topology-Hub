@@ -1,13 +1,14 @@
 package com.kns.topologiesFiles.controller;
 
 import com.kns.topologiesFiles.dto.request.TopologyCreateRequestDto;
-import com.kns.topologiesFiles.dto.request.TopologyUpdateRequestDto;
-
 import com.kns.topologiesFiles.dto.response.TopologyCreateResponseDto;
 
 import com.kns.topologiesFiles.service.TopologyService;
 
 import jakarta.validation.Valid;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,6 +25,11 @@ import java.util.List;
 @RequestMapping("/api/topologies")
 public class TopologyController {
 
+    private static final Logger logger =
+            LoggerFactory.getLogger(
+                    TopologyController.class
+            );
+
     private final TopologyService service;
 
     public TopologyController(
@@ -34,11 +40,11 @@ public class TopologyController {
     }
 
     /*
-     * CREATE JSON
+     * Criar topologia via JSON
      */
     @PostMapping(
-            consumes = "application/json",
-            produces = "application/json"
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<TopologyCreateResponseDto>
     createTopology(
@@ -48,15 +54,20 @@ public class TopologyController {
             TopologyCreateRequestDto dto
     ) {
 
+        logger.info(
+                "Criando topologia JSON"
+        );
+
+        TopologyCreateResponseDto response =
+                service.createTopology(dto);
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(
-                        service.createTopology(dto)
-                );
+                .body(response);
     }
 
     /*
-     * UPLOAD FILE
+     * Upload de arquivo .kns/.json/etc
      */
     @PostMapping(
             value = "/upload",
@@ -79,6 +90,11 @@ public class TopologyController {
 
     ) throws IOException {
 
+        logger.info(
+                "Upload de topologia: {}",
+                name
+        );
+
         return ResponseEntity.ok(
                 service.uploadTopology(
                         file,
@@ -90,82 +106,75 @@ public class TopologyController {
     }
 
     /*
-     * GET ALL
+     * Download do arquivo da topologia
      */
-    @GetMapping
-    public ResponseEntity<
-            List<TopologyCreateResponseDto>
-            > getAll() {
-
-        return ResponseEntity.ok(
-                service.getAll()
-        );
-    }
-
-    /*
-     * GET BY ID
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<
-            TopologyCreateResponseDto
-            > getById(
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]>
+    downloadTopology(
 
             @PathVariable
             String id
     ) {
 
-        return ResponseEntity.ok(
-                service.getById(id)
+        logger.info(
+                "Download da topologia: {}",
+                id
         );
+
+        return service.downloadTopology(id);
     }
 
     /*
-     * UPDATE
+     * Buscar topologias públicas por username
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<
-            TopologyCreateResponseDto
-            > updateTopology(
+    @GetMapping("/user/{username}")
+    public ResponseEntity<List<TopologyCreateResponseDto>>
+    getByUsername(
 
             @PathVariable
-            String id,
-
-            @RequestBody
-            TopologyUpdateRequestDto dto
+            String username
     ) {
 
+        logger.info(
+                "Buscando topologias públicas de: {}",
+                username
+        );
+
         return ResponseEntity.ok(
-                service.updateTopology(
-                        id,
-                        dto
+                service.getPublicTopologiesByUsername(
+                        username
                 )
         );
     }
 
     /*
-     * DELETE
+     * Buscar topologia por ID
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<TopologyCreateResponseDto>
+    getById(
+            @PathVariable
+            String id
+    ) {
+
+        return ResponseEntity.ok(
+                service.getTopologyById(id)
+        );
+    }
+
+    /*
+     * Deletar topologia
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTopology(
+    public ResponseEntity<Void>
+    deleteTopology(
+
             @PathVariable
             String id
     ) {
 
         service.deleteTopology(id);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
-
-    /*
-     * DOWNLOAD
-     */
-    @GetMapping("/{id}/download")
-    public ResponseEntity<byte[]> downloadTopology(
-            @PathVariable
-            String id
-    ) {
-
-        return service.downloadTopology(id);
+        return ResponseEntity.noContent().build();
     }
 }
