@@ -1,22 +1,19 @@
 package com.kns.topologiesFiles.model;
 
 import com.kns.topologiesFiles.model.enums.TopologyStatus;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
-
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 @Getter
 @Setter
@@ -29,28 +26,32 @@ public class Topology {
     @Id
     private String id;
 
+    @Indexed
     private String name;
 
     private String description;
 
     private String version;
 
-    private List<String> tags;
+    private Boolean publicTopology;
 
-    @Builder.Default
-    private boolean publicTopology = false;
-
-    private Map<String, Object> topologyJson;
     private String ownerId;
 
     private String ownerUsername;
 
-    private List<Collaborator> collaborators;
+    private List<String> tags;
 
-    private List<Rating> ratings;
+    private String storageId;
 
-    @Builder.Default
-    private Double averageRating = 0.0;
+    private String fileName;
+
+    private Long fileSize;
+
+    private String checksum;
+
+    private String fileFormat;
+
+    private Integer formatVersion;
 
     @Builder.Default
     private Long downloads = 0L;
@@ -63,8 +64,6 @@ public class Topology {
 
     @Builder.Default
     private Integer revision = 1;
-
-    private List<TopologyVersion> versions;
 
     @Builder.Default
     private TopologyStatus status = TopologyStatus.ACTIVE;
