@@ -1,5 +1,6 @@
 package com.kns.topologiesFiles.service;
 
+import com.kns.topologiesFiles.dto.request.AddCollaboratorRequestDto;
 import com.kns.topologiesFiles.dto.request.TopologyCreateRequestDto;
 import com.kns.topologiesFiles.dto.request.TopologyUpdateRequestDto;
 import com.kns.topologiesFiles.dto.response.TopologyCreateResponseDto;
@@ -8,6 +9,7 @@ import com.kns.topologiesFiles.exception.ResourceNotFoundException;
 
 import com.kns.topologiesFiles.mapper.TopologyMapper;
 
+import com.kns.topologiesFiles.model.Collaborator;
 import com.kns.topologiesFiles.model.Topology;
 import com.kns.topologiesFiles.model.TopologyStorage;
 
@@ -15,6 +17,7 @@ import com.kns.topologiesFiles.model.User;
 import com.kns.topologiesFiles.repo.TopologyRepo;
 import com.kns.topologiesFiles.repo.TopologyStorageRepo;
 
+import com.kns.topologiesFiles.repo.UserRepo;
 import com.kns.topologiesFiles.utils.ChecksumUtil;
 
 import org.springframework.http.HttpHeaders;
@@ -39,15 +42,19 @@ public class TopologyService {
 
     private final AuthenticatedUserService authenticatedUserService;
 
+    private final UserRepo userRepo;
+
     public TopologyService(
             TopologyRepo repo,
             TopologyStorageRepo storageRepo,
-            AuthenticatedUserService authenticatedUserService
+            AuthenticatedUserService authenticatedUserService,
+            UserRepo userRepo
     ) {
 
         this.repo = repo;
         this.storageRepo = storageRepo;
         this.authenticatedUserService = authenticatedUserService;
+        this.userRepo = userRepo;
     }
 
     /*
@@ -271,5 +278,100 @@ public class TopologyService {
                     "You are not the owner of this topology"
             );
         }
+    }
+
+    private boolean isOwner(
+            Topology topology,
+            User user
+    ) {
+
+        return topology.getOwnerId()
+                .equals(user.getId());
+    }
+
+    public void addCollaborator(
+
+            String topologyId,
+
+            AddCollaboratorRequestDto dto
+
+    ) {
+
+        User currentUser =
+                authenticatedUserService
+                        .getAuthenticatedUser();
+
+        Topology topology =
+                repo.findById(topologyId)
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Topology not found"
+                                )
+                        );
+
+        /*
+         * Apenas owner pode adicionar
+         */
+        if (
+                !isOwner(
+                        topology,
+                        currentUser
+                )
+        ) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only owner can add collaborators"
+            );
+        }
+
+        User collaboratorUser =
+                userRepo.findByUsername(
+                        dto.username()
+                ).orElseThrow(() ->
+
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "User not found"
+                        )
+                );
+
+        boolean alreadyCollaborator =
+                topology.getCollaborators()
+                        .stream()
+                        .anyMatch(c ->
+
+                                c.getUserId()
+                                        .equals(
+                                                collaboratorUser.getId()
+                                        )
+                        );
+
+        if (alreadyCollaborator) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "User already collaborator"
+            );
+        }
+
+        Collaborator collaborator =
+                Collaborator.builder()
+                        .userId(
+                                collaboratorUser.getId()
+                        )
+                        .username(
+                                collaboratorUser.getUsername()
+                        )
+                        .permission(
+                                dto.permission()
+                        )
+                        .build();
+
+        topology.getCollaborators()
+                .add(collaborator);
+
+        repo.save(topology);
     }
 }

@@ -1,6 +1,6 @@
 package com.kns.topologiesFiles.model;
 
-import com.kns.topologiesFiles.model.enums.CollaboratorRole;
+import com.kns.topologiesFiles.model.enums.TopologyPermission;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,5 +19,5 @@ public class Collaborator {
 
     private String username;
 
-    private CollaboratorRole role;
+    private TopologyPermission permission;
 }

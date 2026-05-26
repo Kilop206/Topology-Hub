@@ -1,5 +1,6 @@
 package com.kns.topologiesFiles.controller;
 
+import com.kns.topologiesFiles.dto.request.AddCollaboratorRequestDto;
 import com.kns.topologiesFiles.dto.request.TopologyCreateRequestDto;
 import com.kns.topologiesFiles.dto.response.TopologyCreateResponseDto;
 
@@ -176,5 +177,23 @@ public class TopologyController {
         service.deleteTopology(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/collaborators")
+    public ResponseEntity<Void> addCollaborator(
+
+            @PathVariable String id,
+
+            @Valid
+            @RequestBody
+            AddCollaboratorRequestDto dto
+    ) {
+
+        service.addCollaborator(
+                id,
+                dto
+        );
+
+        return ResponseEntity.ok().build();
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -73,4 +74,8 @@ public class Topology {
 
     @LastModifiedDate
     private Instant updatedAt;
+
+    @Builder.Default
+    private List<Collaborator> collaborators =
+            new ArrayList<>();
 }
