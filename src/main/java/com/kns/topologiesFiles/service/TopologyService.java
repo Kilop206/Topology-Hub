@@ -18,12 +18,14 @@ import com.kns.topologiesFiles.repo.TopologyStorageRepo;
 import com.kns.topologiesFiles.utils.ChecksumUtil;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.stereotype.Service;
 
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.List;
@@ -39,7 +41,8 @@ public class TopologyService {
 
     public TopologyService(
             TopologyRepo repo,
-            TopologyStorageRepo storageRepo, AuthenticatedUserService authenticatedUserService
+            TopologyStorageRepo storageRepo,
+            AuthenticatedUserService authenticatedUserService
     ) {
 
         this.repo = repo;
@@ -146,69 +149,36 @@ public class TopologyService {
     /*
      * UPDATE
      */
-    public TopologyCreateResponseDto updateTopology(
-            String id,
-            TopologyUpdateRequestDto dto
-    ) {
+    public TopologyCreateResponseDto updateTopology(String id, TopologyUpdateRequestDto dto) {
+        Topology topology = repo.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Topology not found"));
 
-        Topology topology =
-                repo.findById(id)
-                        .orElseThrow(
-                                () -> new ResourceNotFoundException(
-                                        "Topology not found"
-                                )
-                        );
+        ensureOwnership(topology);
 
-        if (dto.name() != null) {
-            topology.setName(dto.name());
-        }
+        if (dto.name() != null) topology.setName(dto.name());
+        if (dto.description() != null) topology.setDescription(dto.description());
+        if (dto.version() != null) topology.setVersion(dto.version());
+        if (dto.publicTopology() != null) topology.setPublicTopology(dto.publicTopology());
 
-        if (dto.description() != null) {
-            topology.setDescription(
-                    dto.description()
-            );
-        }
-
-        if (dto.version() != null) {
-            topology.setVersion(
-                    dto.version()
-            );
-        }
-
-        if (dto.publicTopology() != null) {
-            topology.setPublicTopology(
-                    dto.publicTopology()
-            );
-        }
-
-        Topology updated =
-                repo.save(topology);
-
-        return TopologyMapper.toCreateResponse(
-                updated
-        );
+        Topology updated = repo.save(topology);
+        return TopologyMapper.toCreateResponse(updated);
     }
 
     /*
      * DELETE
      */
-    public void deleteTopology(
-            String id
-    ) {
 
-        Topology topology =
-                repo.findById(id)
-                        .orElseThrow(
-                                () -> new ResourceNotFoundException(
-                                        "Topology not found"
-                                )
-                        );
+
+    public void deleteTopology(String id) {
+        Topology topology = repo.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Topology not found"));
+
+        ensureOwnership(topology);
 
         if (topology.getStorageId() != null) {
-
-            storageRepo.deleteById(
-                    topology.getStorageId()
-            );
+            storageRepo.deleteById(topology.getStorageId());
         }
 
         repo.delete(topology);
@@ -277,5 +247,16 @@ public class TopologyService {
                         TopologyMapper::toCreateResponse
                 )
                 .toList();
+    }
+
+    private void ensureOwnership(Topology topology) {
+        User user = authenticatedUserService.getAuthenticatedUser();
+
+        if (topology.getOwnerId() == null || !topology.getOwnerId().equals(user.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not the owner of this topology"
+            );
+        }
     }
 }

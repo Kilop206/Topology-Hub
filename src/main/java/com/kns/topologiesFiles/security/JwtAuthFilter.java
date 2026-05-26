@@ -8,20 +8,15 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import org.springframework.security.authentication.
-        UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
-import org.springframework.security.core.context.
-        SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolder;
 
-import org.springframework.security.core.userdetails.
-        UserDetails;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import org.springframework.security.core.userdetails.
-        UserDetailsService;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
-import org.springframework.security.web.authentication.
-        WebAuthenticationDetailsSource;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
 import org.springframework.stereotype.Component;
 
@@ -64,14 +59,6 @@ public class JwtAuthFilter
                         "Authorization"
                 );
 
-        final String jwt;
-
-        final String userEmail;
-
-        /*
-         * Sem token:
-         * deixa o Spring cuidar disso
-         */
         if (
                 authHeader == null ||
                         !authHeader.startsWith(
@@ -89,10 +76,10 @@ public class JwtAuthFilter
 
         try {
 
-            jwt =
+            final String jwt =
                     authHeader.substring(7);
 
-            userEmail =
+            final String userEmail =
                     jwtService.extractUsername(jwt);
 
             if (
@@ -136,10 +123,6 @@ public class JwtAuthFilter
 
         } catch (Exception e) {
 
-            /*
-             * Token inválido:
-             * limpa contexto e segue
-             */
             SecurityContextHolder.clearContext();
         }
 
