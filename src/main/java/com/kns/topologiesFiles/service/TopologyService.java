@@ -57,13 +57,26 @@ public class TopologyService {
             TopologyCreateRequestDto dto
     ) {
 
+        User user =
+                authenticatedUserService
+                        .getAuthenticatedUser();
+
         Topology topology =
                 TopologyMapper.toEntity(dto);
+
+        topology.setOwnerId(
+                user.getId()
+        );
+
+        topology.setOwnerUsername(
+                user.getUsername()
+        );
 
         Topology saved =
                 repo.save(topology);
 
-        return TopologyMapper.toCreateResponse(saved);
+        return TopologyMapper
+                .toCreateResponse(saved);
     }
 
     /*
