@@ -2,6 +2,7 @@
 **/node_modules/
 **/.next/
 **/.next-validation/
+**/.next-e2e/
 **/playwright-report/
 **/test-results/
 **/data/
