@@ -1,15 +1,9 @@
 import type { ReactNode } from "react";
 import { Icon } from "./icon";
-export function ErrorState({
-  message,
-  retry,
-}: {
-  message: string;
-  retry?: () => void;
-}) {
+export function ErrorState({ message, retry }: { message: string; retry?: () => void }) {
   return (
     <div className="error-state" role="alert">
-      <span className="tech-label">REQUEST FAILED</span>
+      <span className="tech-label">Não foi possível concluir</span>
       <p>{message}</p>
       {retry && (
         <button className="button secondary" onClick={retry}>
@@ -31,19 +25,14 @@ export function EmptyState({
   return (
     <section className="empty-panel">
       <Icon name="network" size={32} />
-      <span className="tech-label">0 MATCHES</span>
       <h2>{title}</h2>
-      {query && <code className="query-display">QUERY / {query}</code>}
+      {query && <p className="query-display">Busca: “{query}”</p>}
       <p>Altere a busca ou importe uma topologia no formato KNS.</p>
       {children}
     </section>
   );
 }
-export function LoadingState({
-  label = "FETCHING TOPOLOGIES…",
-}: {
-  label?: string;
-}) {
+export function LoadingState({ label = "Carregando topologias…" }: { label?: string }) {
   return (
     <div className="loading-state" role="status">
       <span className="tech-label">{label}</span>

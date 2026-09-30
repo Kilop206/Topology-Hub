@@ -59,6 +59,9 @@
   --ux-type-small: 14px;
   --ux-type-code: 13px;
   --ux-container-max: 1440px;
-  --ux-page-padding: 48px;
-  --ux-sidebar-width: 240px;
+  --ux-page-padding: 32px;
+  --ux-inspector-width: 280px;
+  --ux-canvas-height: 560px;
+  --ux-control-height: 44px;
+  --ux-sidebar-width: 216px;
 }

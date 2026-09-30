@@ -108,14 +108,9 @@ export function Admin() {
     <>
       <section className="page-heading">
         <div>
-          <div className="eyebrow">
-            <Icon name="shield" size={17} />
-            ACCESS / ADMIN
-          </div>
           <h1>Administração</h1>
           <p>
-            Gerencie permissões, modere topologias e inspecione o histórico de
-            alterações.
+            Gerencie permissões, modere topologias e inspecione o histórico de alterações.
           </p>
         </div>
       </section>

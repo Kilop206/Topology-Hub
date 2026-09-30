@@ -1,4 +1,9 @@
 import {
+  Menu,
+  X,
+  Maximize,
+  Minimize,
+  SlidersHorizontal,
   Network,
   LayoutGrid,
   FolderOpen,
@@ -24,6 +29,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 const icons: Record<string, LucideIcon> = {
+  menu: Menu,
+  close: X,
+  expand: Maximize,
+  collapse: Minimize,
+  filters: SlidersHorizontal,
   network: Network,
   grid: LayoutGrid,
   folder: FolderOpen,

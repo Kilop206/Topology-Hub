@@ -36,10 +36,10 @@ export function AuthForm({ register = false }: { register?: boolean }) {
       ...(register ? { displayName: form.get("displayName") } : {}),
     };
     try {
-      const user = await api<User>(
-        register ? "/auth/register" : "/auth/login",
-        { method: "POST", body: JSON.stringify(input) },
-      );
+      const user = await api<User>(register ? "/auth/register" : "/auth/login", {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
       setUser(user);
       router.push("/mine");
     } catch (e) {
@@ -50,47 +50,17 @@ export function AuthForm({ register = false }: { register?: boolean }) {
   }
   return (
     <section className="auth-layout">
-      <div className="auth-story">
-        <span className="brand-mark">
-          <Icon name="network" size={32} />
-        </span>
-        <h1>
-          Network architectures
-          <br />
-          are data.
-        </h1>
-        <p>
-          Inspecione nós e conexões. Controle versões. Compartilhe arquiteturas
-          de rede e exporte cenários para o KNS.
-        </p>
-        <div className="auth-feature">
-          <Icon name="network" />
-          TOPOLOGIES / PUBLIC + PRIVATE
-        </div>
-        <div className="auth-feature">
-          <Icon name="json" />
-          FORMAT / KNS JSON
-        </div>
-        <div className="auth-feature">
-          <Icon name="shield" />
-          ACCESS / OWNER + ADMIN
-        </div>
-      </div>
-      <div className="form-panel auth-panel">
-        <h2>{register ? "Crie sua conta" : "Bem-vindo de volta."}</h2>
+      <div className="auth-panel">
+        <h2>{register ? "Crie sua conta" : "Entrar no Topology Hub"}</h2>
         <p className="muted">
           {register
-            ? "Um espaço para suas próximas conexões."
-            : "Entre para continuar de onde parou."}
+            ? "Crie uma conta para salvar e compartilhar topologias."
+            : "Acesse suas topologias e permissões."}
         </p>
         <div className="social-buttons">
           {(["google", "github"] as const).map((name) =>
             providers[name] ? (
-              <a
-                className="button secondary"
-                href={"/api/auth/oauth/" + name}
-                key={name}
-              >
+              <a className="button secondary" href={"/api/auth/oauth/" + name} key={name}>
                 <strong>{name === "google" ? "G" : "GH"}</strong>Continuar com{" "}
                 {name === "google" ? "Google" : "GitHub"}
               </a>

@@ -2,13 +2,7 @@
 import { useEffect, useState, type FormEvent, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  api,
-  errorMessage,
-  initialGraph,
-  type Detail,
-  type Graph,
-} from "@/lib/api";
+import { api, errorMessage, initialGraph, type Detail, type Graph } from "@/lib/api";
 import { useAuth } from "./auth";
 import { Icon } from "./icon";
 import { GraphPreview } from "./graph-preview";
@@ -45,6 +39,7 @@ export function TopologyEditor({ id }: { id?: string }) {
     return () => abort.abort();
   }, [id]);
   let preview: Graph | null = null;
+  let validation = "";
   try {
     const candidate = JSON.parse(json);
     if (
@@ -53,26 +48,26 @@ export function TopologyEditor({ id }: { id?: string }) {
       Array.isArray(candidate.links)
     )
       preview = candidate;
-  } catch {}
+    else validation = "Informe nodes como inteiro positivo e links como lista.";
+  } catch (e) {
+    validation = e instanceof Error ? e.message : "JSON inválido.";
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setBusy(true);
     try {
       const graph = JSON.parse(json);
-      const detail = await api<Detail>(
-        id ? "/topologies/" + id : "/topologies",
-        {
-          method: id ? "PUT" : "POST",
-          body: JSON.stringify({
-            title,
-            description,
-            visibility,
-            graph,
-            ...(id ? { version } : {}),
-          }),
-        },
-      );
+      const detail = await api<Detail>(id ? "/topologies/" + id : "/topologies", {
+        method: id ? "PUT" : "POST",
+        body: JSON.stringify({
+          title,
+          description,
+          visibility,
+          graph,
+          ...(id ? { version } : {}),
+        }),
+      });
       router.push("/topologies/" + detail.topology.id);
     } catch (e) {
       setError(
@@ -104,8 +99,7 @@ export function TopologyEditor({ id }: { id?: string }) {
     }
     event.target.value = "";
   }
-  if (authLoading || loading)
-    return <p className="loading-text">Carregando editor…</p>;
+  if (authLoading || loading) return <p className="loading-text">Carregando editor…</p>;
   if (!user)
     return (
       <section className="empty-panel">
@@ -115,10 +109,7 @@ export function TopologyEditor({ id }: { id?: string }) {
         </Link>
       </section>
     );
-  if (
-    id &&
-    (version === undefined || (owner !== user.id && user.role !== "ADMIN"))
-  )
+  if (id && (version === undefined || (owner !== user.id && user.role !== "ADMIN")))
     return (
       <section className="empty-panel">
         <h1>Editor indisponível.</h1>
@@ -131,21 +122,29 @@ export function TopologyEditor({ id }: { id?: string }) {
   return (
     <>
       <Link className="back-link" href={id ? "/topologies/" + id : "/mine"}>
-        ← Voltar às topologias
+        ← {id ? title || "Topologia" : "Minhas topologias"}
       </Link>
       <section className="page-heading">
         <div>
-          <span className="eyebrow">TOPOLOGY / EDITOR</span>
           <h1>{id ? "Editar topologia" : "Nova topologia"}</h1>
-          <p>
-            Importe um arquivo KNS ou edite o JSON. O exemplo inicial configura
-            uma rede em anel.
-          </p>
+        </div>
+        <div className="action-group">
+          <Link className="button ghost" href={id ? "/topologies/" + id : "/mine"}>
+            Cancelar
+          </Link>
+          <button
+            type="submit"
+            form="topology-editor"
+            className="button"
+            disabled={busy || !title.trim() || !preview}
+          >
+            {busy ? "Salvando…" : "Salvar topologia"}
+          </button>
         </div>
       </section>
-      <form onSubmit={submit} className="editor-layout">
-        <div className="form-panel">
-          <h2>Informações da topologia</h2>
+      <form id="topology-editor" onSubmit={submit} className="editor-layout">
+        <div className="editor-fields">
+          <h2>Metadados</h2>
           <label>
             Nome
             <input
@@ -173,13 +172,9 @@ export function TopologyEditor({ id }: { id?: string }) {
             <select
               name="visibility"
               value={visibility}
-              onChange={(e) =>
-                setVisibility(e.target.value as "PUBLIC" | "PRIVATE")
-              }
+              onChange={(e) => setVisibility(e.target.value as "PUBLIC" | "PRIVATE")}
             >
-              <option value="PRIVATE">
-                Privada — apenas você e administradores
-              </option>
+              <option value="PRIVATE">Privada — apenas você e administradores</option>
               <option value="PUBLIC">Pública — disponível na comunidade</option>
             </select>
           </label>
@@ -188,11 +183,7 @@ export function TopologyEditor({ id }: { id?: string }) {
             <label className="file-button">
               <Icon name="download" size={16} />
               Importar arquivo
-              <input
-                type="file"
-                accept=".json,application/json"
-                onChange={importFile}
-              />
+              <input type="file" accept=".json,application/json" onChange={importFile} />
             </label>
           </div>
           <textarea
@@ -201,35 +192,34 @@ export function TopologyEditor({ id }: { id?: string }) {
             spellCheck={false}
             value={json}
             onChange={(e) => setJson(e.target.value)}
-            rows={16}
+            rows={24}
+            aria-invalid={!!validation}
+            aria-describedby="json-validation"
             required
           />
+          <p
+            id="json-validation"
+            className={validation ? "error" : "field-hint"}
+            role="status"
+          >
+            {validation ||
+              (preview
+                ? preview.nodes + " nós · " + preview.links.length + " links"
+                : "")}
+          </p>
           <p className="field-hint">
-            Formato KNS: nodes é a quantidade de nós; links contém from, to,
-            delay, bandwidth e loss (0 a 1).
+            Formato KNS: nodes é a quantidade de nós; links contém from, to, delay,
+            bandwidth e loss (0 a 1).
           </p>
           {error && (
             <p className="error" role="alert">
               {error}
             </p>
           )}
-          <div className="form-actions">
-            <Link
-              className="button secondary"
-              href={id ? "/topologies/" + id : "/mine"}
-            >
-              Cancelar
-            </Link>
-            <button className="button" disabled={busy || !title.trim()}>
-              {busy ? "Salvando…" : "Salvar topologia"}
-              <Icon name="check" size={17} />
-            </button>
-          </div>
         </div>
         <aside className="preview-panel">
           <div className="preview-heading">
             <h2>Prévia da rede</h2>
-            <span className="badge">LOCAL PREVIEW</span>
           </div>
           {preview ? (
             <GraphPreview graph={preview} large interactive />
@@ -238,14 +228,6 @@ export function TopologyEditor({ id }: { id?: string }) {
               <p>JSON inválido. Revise a estrutura para visualizar a rede.</p>
             </div>
           )}
-          <div className="preview-help">
-            <h3>Validação no servidor</h3>
-            <p>
-              Ao salvar, o backend verifica IDs de nós, referências dos links e
-              limites das métricas. Campos adicionais são preservados no arquivo
-              exportado.
-            </p>
-          </div>
         </aside>
       </form>
     </>

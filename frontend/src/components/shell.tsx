@@ -11,6 +11,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [error, setError] = useState("");
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   async function logout() {
     setLoggingOut(true);
@@ -26,7 +27,7 @@ export function Shell({ children }: { children: ReactNode }) {
   }
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <aside className={"sidebar" + (navigationOpen ? " navigation-open" : "")}>
         <Link href="/" className="brand" aria-label="UserEx / Topology Hub">
           <span className="brand-mark">
             <Icon name="network" size={24} />
@@ -35,14 +36,24 @@ export function Shell({ children }: { children: ReactNode }) {
             <strong>
               USER<span>EX</span>
             </strong>
-            <small>/ TOPOLOGY HUB</small>
+            <small>Topology Hub</small>
           </span>
         </Link>
-        <div className="workspace">
-          <Icon name="terminal" size={18} />
-          <span>SYS / NETWORK LAB</span>
-        </div>
-        <nav aria-label="Navegação principal">
+        <button
+          type="button"
+          className="icon-button navigation-toggle"
+          aria-label="Navegação"
+          aria-expanded={navigationOpen}
+          aria-controls="primary-navigation"
+          onClick={() => setNavigationOpen(!navigationOpen)}
+        >
+          <Icon name={navigationOpen ? "close" : "menu"} />
+        </button>
+        <nav
+          id="primary-navigation"
+          aria-label="Navegação principal"
+          onClick={() => setNavigationOpen(false)}
+        >
           <Link
             title="Explorar topologias"
             className={pathname === "/" ? "nav-item active" : "nav-item"}
@@ -70,77 +81,52 @@ export function Shell({ children }: { children: ReactNode }) {
             </Link>
           )}
         </nav>
-        <div className="sidebar-note">
-          <span className="tech-label">KNS / ECOSYSTEM</span>
-          <p>
-            Network architectures
-            <br />
-            are data.
-          </p>
-          <a
-            href="https://github.com/Kilop206/KNS"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Icon name="network" size={16} />
-            Simulador KNS
-            <Icon name="external" size={13} />
-          </a>
-        </div>
-        <div className="sidebar-bottom">
-          <Icon name="terminal" size={14} />
-          <span>HUB v0.1.0</span>
-          <span className="muted">UserEx</span>
+        <a
+          className="kns-link nav-item"
+          href="https://github.com/Kilop206/KNS"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Icon name="external" size={18} />
+          <span>Simulador KNS</span>
+        </a>
+        <div className="account">
+          {loading ? (
+            <span className="tech-label">Carregando conta…</span>
+          ) : user ? (
+            <>
+              <span className="avatar">{user.displayName.slice(0, 1).toUpperCase()}</span>
+              <span className="account-name">{user.displayName}</span>
+
+              <button
+                className="icon-button"
+                title="Sair"
+                aria-label="Sair"
+                disabled={loggingOut}
+                onClick={logout}
+              >
+                <Icon name="logout" />
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-link">
+                Entrar
+              </Link>
+              <Link href="/register" className="button small">
+                Criar conta
+              </Link>
+            </>
+          )}
         </div>
       </aside>
       <div className="main-shell">
-        <header className="topbar">
-          <span className="breadcrumb">
-            <span>USEREX</span> /{" "}
-            {pathname === "/admin" ? "ACCESS CONTROL" : "TOPOLOGY REPOSITORY"}
-          </span>
-          <div className="account">
-            {loading ? (
-              <span className="tech-label">SESSION / LOADING</span>
-            ) : user ? (
-              <>
-                <span className="avatar">
-                  {user.displayName.slice(0, 1).toUpperCase()}
-                </span>
-                <span className="account-name">{user.displayName}</span>
-                <span className="badge">{user.role}</span>
-                <button
-                  className="icon-button"
-                  title="Sair"
-                  aria-label="Sair"
-                  disabled={loggingOut}
-                  onClick={logout}
-                >
-                  <Icon name="logout" />
-                </button>
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="text-link">
-                  Entrar
-                </Link>
-                <Link href="/register" className="button small">
-                  Criar conta
-                </Link>
-              </>
-            )}
-          </div>
-        </header>
         <main id="main-content">
           {(error || connectionError) && (
             <ErrorState message={error || connectionError} />
           )}{" "}
           {children}
         </main>
-        <footer>
-          <span>USEREX // TOPOLOGY HUB</span>
-          <span>Making users feel like coders.</span>
-        </footer>
       </div>
     </div>
   );
