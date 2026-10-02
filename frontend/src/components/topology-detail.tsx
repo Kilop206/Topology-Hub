@@ -2,7 +2,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, date, errorMessage, type Detail } from "@/lib/api";
+import {
+  api,
+  date,
+  errorMessage,
+  type Detail,
+  type RevisionSummary,
+} from "@/lib/api";
 import { useAuth } from "./auth";
 import { GraphPreview } from "./graph-preview";
 import { TopologyInspector } from "./topology-inspector";
@@ -25,6 +31,7 @@ export function TopologyDetail({ id }: { id: string }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [page, setPage] = useState(0);
   const [selection, setSelection] = useState<GraphSelection>(null);
+  const [revisions, setRevisions] = useState<RevisionSummary[] | null>(null);
   const { user } = useAuth();
   const router = useRouter();
   useEffect(() => {
@@ -32,6 +39,7 @@ export function TopologyDetail({ id }: { id: string }) {
     setError("");
     setData(null);
     setSelection(null);
+    setRevisions(null);
     api<Detail>("/topologies/" + id, { signal: abort.signal })
       .then(setData)
       .catch((e) => {
@@ -39,6 +47,19 @@ export function TopologyDetail({ id }: { id: string }) {
       });
     return () => abort.abort();
   }, [id, retry]);
+  useEffect(() => {
+    if (tab !== "revisions" || revisions !== null) return;
+    const abort = new AbortController();
+    api<RevisionSummary[]>("/topologies/" + id + "/revisions", {
+      signal: abort.signal,
+    })
+      .then(setRevisions)
+      .catch((e) => {
+        if (!abort.signal.aborted) setError(errorMessage(e));
+      });
+    return () => abort.abort();
+  }, [id, revisions, tab]);
+
   async function remove() {
     if (!confirm("Excluir esta topologia permanentemente?")) return;
     setBusy(true);
@@ -182,15 +203,41 @@ export function TopologyDetail({ id }: { id: string }) {
             </div>
           ) : tab === "revisions" ? (
             <div className="overview-content">
-              <h2>Revisão atual</h2>
+              <h2>Revisões</h2>
               <p>
-                <code>rev. {t.version + 1}</code> · Atualizada em{" "}
+                Revisão atual: <code>rev. {t.version + 1}</code> · Atualizada em{" "}
                 <time dateTime={t.updatedAt}>{date(t.updatedAt)}</time>
               </p>
-              <p className="muted">
-                O serviço fornece a revisão atual. O histórico de versões ainda não está
-                disponível.
-              </p>
+              {revisions === null ? (
+                <p className="muted">Carregando histórico…</p>
+              ) : revisions.length === 0 ? (
+                <p className="muted">Nenhuma revisão registrada.</p>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>REVISÃO</th>
+                        <th>DATA</th>
+                        <th>AUTOR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {revisions.map((revision) => (
+                        <tr key={revision.revision}>
+                          <td className="mono">rev. {revision.revision}</td>
+                          <td>
+                            <time dateTime={revision.createdAt}>
+                              {date(revision.createdAt)}
+                            </time>
+                          </td>
+                          <td>{revision.actorName}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           ) : tab === "json" ? (
             <JsonViewer

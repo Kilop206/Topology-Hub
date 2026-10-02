@@ -37,6 +37,12 @@ export type Topology = {
   preview: Graph;
 };
 export type Detail = { topology: Topology; graph: Graph };
+export type RevisionSummary = {
+  revision: number;
+  createdAt: string;
+  actorId: string;
+  actorName: string;
+};
 export type Listing = {
   items: Topology[];
   total: number;
