@@ -19,21 +19,26 @@ public class Bootstrap {
 
   @Transactional
   void start(@Observes StartupEvent event) {
-    if (email.isEmpty() && password.isEmpty()) return;
+    var configuredEmail = email.map(String::trim).filter(value -> !value.isEmpty());
+    var configuredPassword = password.filter(value -> !value.isBlank());
+
+    if (configuredEmail.isEmpty() && configuredPassword.isEmpty()) return;
     if (
-      email.isEmpty() ||
-      password.isEmpty() ||
-      !email.get().contains("@") ||
-      password.get().length() < 12
+      configuredEmail.isEmpty() ||
+      configuredPassword.isEmpty() ||
+      !configuredEmail.get().contains("@") ||
+      configuredPassword.get().length() < 12
     ) throw new IllegalStateException(
       "Configure HUB_ADMIN_EMAIL e HUB_ADMIN_PASSWORD (12 caracteres ou mais)."
     );
-    AuthResource.password(password.get());
-    if (User.byEmail(AuthResource.normalize(email.get())) != null) return;
+
+    AuthResource.password(configuredPassword.get());
+    if (User.byEmail(AuthResource.normalize(configuredEmail.get())) != null) return;
+
     var admin = new User();
-    admin.email = AuthResource.normalize(email.get());
+    admin.email = AuthResource.normalize(configuredEmail.get());
     admin.displayName = "Administrador";
-    admin.passwordHash = BcryptUtil.bcryptHash(password.get());
+    admin.passwordHash = BcryptUtil.bcryptHash(configuredPassword.get());
     admin.role = "ADMIN";
     admin.persist();
   }
