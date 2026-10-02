@@ -328,7 +328,7 @@ public class TopologyResource {
     }
 
     t.graph = graph.toString();
-    t.nodeCount = graph.path("nodes").asInt();
+    t.nodeCount = Graphs.nodeCount(graph);
     t.linkCount = graph.path("links").size();
     t.updatedAt = Instant.now();
   }
