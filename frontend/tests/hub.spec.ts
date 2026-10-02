@@ -328,3 +328,75 @@ test("canvas mantém redes maiores, seleção por teclado e navegação de tabs"
       .getByRole("heading", { name: "Link 0", exact: true }),
   ).toBeVisible();
 });
+
+test("canvas preserva IDs e metadados de topologias tipadas do Discovery", async ({
+  page,
+}) => {
+  const graph = {
+    schema_version: "1.0",
+    name: "Discovered LAN",
+    nodes: [
+      {
+        id: 10,
+        external_id: "host:workstation",
+        label: "Workstation",
+        type: "computer",
+        addresses: ["192.0.2.10"],
+        evidence: "local_interface",
+      },
+      {
+        id: 30,
+        external_id: "device:gateway",
+        label: "Gateway",
+        type: "router",
+        addresses: ["192.0.2.1"],
+        evidence: "default_route",
+      },
+    ],
+    links: [{ from: 10, to: 30, delay: 1, bandwidth: 100, loss: 0 }],
+  };
+
+  await page.route("**/api/topologies/typed-fixture", (route) =>
+    route.fulfill({
+      json: {
+        topology: {
+          id: "typed-fixture",
+          title: "Discovery import",
+          description: "",
+          visibility: "PUBLIC",
+          nodeCount: 2,
+          linkCount: 1,
+          ownerId: "fixture",
+          ownerName: "Engenharia",
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+          version: 0,
+          metrics: {
+            meanLinkDelayMs: 1,
+            minimumBandwidthMbps: 100,
+            maximumLossPercent: 0,
+          },
+          preview: { nodes: 2, links: graph.links },
+        },
+        graph,
+      },
+    }),
+  );
+
+  await page.goto("/topologies/typed-fixture");
+  await expect(page.getByRole("button", { name: "Inspecionar nó 10" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Inspecionar nó 30" })).toBeVisible();
+  await page.getByRole("button", { name: "Inspecionar nó 30" }).click();
+
+  const inspector = page.getByRole("complementary", { name: "Inspector" });
+  await expect(inspector.getByRole("heading", { name: "Nó 30" })).toBeVisible();
+  await expect(inspector.getByText("Gateway", { exact: true })).toBeVisible();
+  await expect(inspector.getByText("router", { exact: true })).toBeVisible();
+  await expect(inspector.getByText("device:gateway", { exact: true })).toBeVisible();
+  await expect(inspector.getByText("192.0.2.1", { exact: true })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Nós", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Nó 10", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Nó 30", exact: true })).toBeVisible();
+});
+
