@@ -239,9 +239,15 @@ public class TopologyResource {
     t.title = input.title().strip();
     t.description = input.description().strip();
     t.visibility = input.visibility();
-    t.graph = input.graph().toString();
-    t.nodeCount = input.graph().path("nodes").asInt();
-    t.linkCount = input.graph().path("links").size();
+
+    var graph = input.graph().deepCopy();
+    if (graph instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
+      object.put("schema_version", "1.0");
+    }
+
+    t.graph = graph.toString();
+    t.nodeCount = graph.path("nodes").asInt();
+    t.linkCount = graph.path("links").size();
     t.updatedAt = Instant.now();
   }
 }
