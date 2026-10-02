@@ -2,7 +2,14 @@
 import { useEffect, useState, type FormEvent, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api, errorMessage, initialGraph, type Detail, type Graph } from "@/lib/api";
+import {
+  api,
+  errorMessage,
+  graphNodeCount,
+  initialGraph,
+  type Detail,
+  type Graph,
+} from "@/lib/api";
 import { useAuth } from "./auth";
 import { Icon } from "./icon";
 import { GraphPreview } from "./graph-preview";
@@ -42,13 +49,23 @@ export function TopologyEditor({ id }: { id?: string }) {
   let validation = "";
   try {
     const candidate = JSON.parse(json);
-    if (
-      Number.isInteger(candidate.nodes) &&
-      candidate.nodes > 0 &&
-      Array.isArray(candidate.links)
-    )
+    const validLegacyNodes = Number.isInteger(candidate.nodes) && candidate.nodes > 0;
+    const validTypedNodes =
+      Array.isArray(candidate.nodes) &&
+      candidate.nodes.length > 0 &&
+      candidate.nodes.every(
+        (node: unknown) =>
+          typeof node === "object" &&
+          node !== null &&
+          Number.isInteger((node as { id?: unknown }).id),
+      ) &&
+      new Set(candidate.nodes.map((node: { id: number }) => node.id)).size ===
+        candidate.nodes.length;
+    if ((validLegacyNodes || validTypedNodes) && Array.isArray(candidate.links))
       preview = candidate;
-    else validation = "Informe nodes como inteiro positivo e links como lista.";
+    else
+      validation =
+        "Informe nodes como inteiro positivo ou lista de nós com IDs únicos, e links como lista.";
   } catch (e) {
     validation = e instanceof Error ? e.message : "JSON inválido.";
   }
@@ -204,12 +221,12 @@ export function TopologyEditor({ id }: { id?: string }) {
           >
             {validation ||
               (preview
-                ? preview.nodes + " nós · " + preview.links.length + " links"
+                ? graphNodeCount(preview) + " nós · " + preview.links.length + " links"
                 : "")}
           </p>
           <p className="field-hint">
-            Formato KNS: nodes é a quantidade de nós; links contém from, to, delay,
-            bandwidth e loss (0 a 1).
+            Formato KNS v1: nodes pode ser a quantidade de nós ou uma lista tipada com
+            IDs estáveis; links contém from, to, delay, bandwidth e loss (0 a 1).
           </p>
           {error && (
             <p className="error" role="alert">
