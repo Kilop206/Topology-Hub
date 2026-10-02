@@ -211,6 +211,7 @@ class HubApiTest {
       .then()
       .statusCode(200)
       .header("Content-Disposition", containsString(".json"))
+      .body("schema_version", equalTo("1.0"))
       .body("nodes", equalTo(3));
     request()
       .cookie(Sessions.COOKIE, owner)
