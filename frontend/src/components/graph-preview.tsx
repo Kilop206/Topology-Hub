@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Graph } from "@/lib/api";
+import { graphNodeCount, type Graph } from "@/lib/api";
 import { graphLayout, type GraphLayout, type GraphSelection } from "@/lib/graph-layout";
 import { Icon } from "./icon";
 
@@ -36,12 +36,13 @@ export function GraphPreview({
     null,
   );
   const limit = large ? 5000 : 32;
-  const count = Math.max(0, Math.min(graph.nodes, limit));
+  const totalNodes = graphNodeCount(graph);
+  const count = Math.max(0, Math.min(totalNodes, limit));
   const geometry = useMemo(
     () => graphLayout(graph, count, layout),
     [graph, count, layout],
   );
-  const { points, width, height } = geometry;
+  const { points, width, height, nodeIds, indexById } = geometry;
   const edgeLimit = large ? 20000 : 100;
   const edges = useMemo(
     () =>
@@ -53,10 +54,10 @@ export function GraphPreview({
             link &&
             Number.isInteger(link.from) &&
             Number.isInteger(link.to) &&
-            points[link.from] &&
-            points[link.to],
+            indexById.has(link.from) &&
+            indexById.has(link.to),
         ),
-    [graph, edgeLimit, points],
+    [graph, edgeLimit, indexById],
   );
   const linkCount = totalLinks ?? graph.links.length;
   const reset = () => {
@@ -158,7 +159,7 @@ export function GraphPreview({
         viewBox={"0 0 " + width + " " + height}
         role={interactive ? "group" : "img"}
         aria-label={
-          "Prévia da topologia com " + graph.nodes + " nós e " + linkCount + " conexões"
+          "Prévia da topologia com " + totalNodes + " nós e " + linkCount + " conexões"
         }
         onPointerDown={
           interactive
@@ -262,55 +263,64 @@ export function GraphPreview({
                 </title>
                 <line
                   className="graph-edge"
-                  x1={points[link.from].x}
-                  y1={points[link.from].y}
-                  x2={points[link.to].x}
-                  y2={points[link.to].y}
+                  x1={points[indexById.get(link.from)!].x}
+                  y1={points[indexById.get(link.from)!].y}
+                  x2={points[indexById.get(link.to)!].x}
+                  y2={points[indexById.get(link.to)!].y}
                 />
                 {interactive && (
                   <line
                     className="graph-edge-hit"
-                    x1={points[link.from].x}
-                    y1={points[link.from].y}
-                    x2={points[link.to].x}
-                    y2={points[link.to].y}
+                    x1={points[indexById.get(link.from)!].x}
+                    y1={points[indexById.get(link.from)!].y}
+                    x2={points[indexById.get(link.to)!].x}
+                    y2={points[indexById.get(link.to)!].y}
                   />
                 )}
               </g>
             );
           })}
-          {points.map((point, index) => (
-            <g
-              key={index}
-              data-element="node"
-              className={
-                "graph-node" +
-                (selected?.kind === "node" && selected.index === index ? " selected" : "")
-              }
-              role={interactive ? "button" : undefined}
-              tabIndex={interactive ? 0 : undefined}
-              aria-label={interactive ? "Inspecionar nó " + index : undefined}
-              aria-pressed={
-                interactive
-                  ? selected?.kind === "node" && selected.index === index
-                  : undefined
-              }
-              onClick={interactive ? () => select({ kind: "node", index }) : undefined}
-              onKeyDown={
-                interactive ? (e) => activate(e, { kind: "node", index }) : undefined
-              }
-            >
-              <circle cx={point.x} cy={point.y} r={large ? 16 : 20} />
-              {large && labels && (
-                <text x={point.x} y={point.y + 4} textAnchor="middle">
-                  {index}
-                </text>
-              )}
-            </g>
-          ))}
+          {points.map((point, index) => {
+            const nodeId = nodeIds[index];
+            return (
+              <g
+                key={nodeId}
+                data-element="node"
+                className={
+                  "graph-node" +
+                  (selected?.kind === "node" && selected.index === nodeId
+                    ? " selected"
+                    : "")
+                }
+                role={interactive ? "button" : undefined}
+                tabIndex={interactive ? 0 : undefined}
+                aria-label={interactive ? "Inspecionar nó " + nodeId : undefined}
+                aria-pressed={
+                  interactive
+                    ? selected?.kind === "node" && selected.index === nodeId
+                    : undefined
+                }
+                onClick={
+                  interactive ? () => select({ kind: "node", index: nodeId }) : undefined
+                }
+                onKeyDown={
+                  interactive
+                    ? (e) => activate(e, { kind: "node", index: nodeId })
+                    : undefined
+                }
+              >
+                <circle cx={point.x} cy={point.y} r={large ? 16 : 20} />
+                {large && labels && (
+                  <text x={point.x} y={point.y + 4} textAnchor="middle">
+                    {nodeId}
+                  </text>
+                )}
+              </g>
+            );
+          })}
         </g>
       </svg>
-      {(count < graph.nodes || edges.length < linkCount) && (
+      {(count < totalNodes || edges.length < linkCount) && (
         <span className="preview-note">
           Prévia parcial: {count} nós, {edges.length} de {linkCount} links
         </span>
@@ -318,7 +328,7 @@ export function GraphPreview({
       {interactive && (
         <div className="canvas-status">
           <span>
-            {graph.nodes} nós · {linkCount} links
+            {totalNodes} nós · {linkCount} links
           </span>
           <span>
             {selected
