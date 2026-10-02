@@ -252,6 +252,18 @@ test("canvas mantém redes maiores, seleção por teclado e navegação de tabs"
     nodes: 300,
     links: [{ from: 0, to: 299, delay: 9.8, bandwidth: 50, loss: 0.01 }],
   };
+  await page.route("**/api/topologies/fixture-large/revisions", (route) =>
+    route.fulfill({
+      json: [
+        {
+          revision: 1,
+          createdAt: "2026-01-01T00:00:00Z",
+          actorId: "fixture",
+          actorName: "Engenharia",
+        },
+      ],
+    }),
+  );
   await page.route("**/api/topologies/fixture-large", (route) =>
     route.fulfill({
       json: {
@@ -293,7 +305,8 @@ test("canvas mantém redes maiores, seleção por teclado e navegação de tabs"
     "aria-selected",
     "true",
   );
-  await expect(page.getByRole("heading", { name: "Revisão atual" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Revisões", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "rev. 1", exact: true })).toBeVisible();
   await page.setViewportSize({ width: 820, height: 1180 });
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
