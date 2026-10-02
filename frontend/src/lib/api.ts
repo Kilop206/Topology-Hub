@@ -6,17 +6,47 @@ export type User = {
   active: boolean;
   createdAt: string;
 };
+export type GraphNode = {
+  id: number;
+  external_id?: string;
+  label?: string;
+  type?: string;
+  addresses?: string[];
+  evidence?: string;
+  position?: { x: number; y: number };
+  [key: string]: unknown;
+};
+
 export type Graph = {
-  nodes: number;
+  schema_version?: string;
+  name?: string;
+  nodes: number | GraphNode[];
   links: {
     from: number;
     to: number;
     delay: number;
     bandwidth: number;
     loss: number;
+    [key: string]: unknown;
   }[];
   [key: string]: unknown;
 };
+
+export function graphNodeIds(graph: Graph): number[] {
+  return typeof graph.nodes === "number"
+    ? Array.from({ length: Math.max(0, graph.nodes) }, (_, id) => id)
+    : graph.nodes.map((node) => node.id);
+}
+
+export function graphNodeCount(graph: Graph): number {
+  return typeof graph.nodes === "number" ? graph.nodes : graph.nodes.length;
+}
+
+export function graphNodeById(graph: Graph, id: number): GraphNode | undefined {
+  return Array.isArray(graph.nodes)
+    ? graph.nodes.find((node) => node.id === id)
+    : undefined;
+}
 export type Topology = {
   id: string;
   title: string;
