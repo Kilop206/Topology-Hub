@@ -1,4 +1,4 @@
-import type { Graph } from "./api";
+import { graphNodeIds, type Graph } from "./api";
 
 export type GraphSelection = { kind: "node" | "link"; index: number } | null;
 export type GraphLayout = "auto" | "circle" | "grid";
@@ -6,6 +6,8 @@ export type GraphLayout = "auto" | "circle" | "grid";
 // Keep positions deterministic. Small networks expose connectivity through BFS
 // layers; large networks use a grid to avoid overlapping thousands of labels.
 export function graphLayout(graph: Graph, count: number, layout: GraphLayout) {
+  const nodeIds = graphNodeIds(graph).slice(0, count);
+  const indexById = new Map(nodeIds.map((id, index) => [id, index]));
   const columns = Math.max(1, Math.ceil(Math.sqrt(count * 1.6)));
   let width = Math.max(800, columns * 72 + 120);
   let height = Math.max(480, Math.ceil(count / columns) * 64 + 120);
@@ -27,9 +29,11 @@ export function graphLayout(graph: Graph, count: number, layout: GraphLayout) {
   } else if (layout === "auto" && count <= 128) {
     const adjacency = Array.from({ length: count }, () => new Set<number>());
     for (const link of graph.links) {
-      if (link && adjacency[link.from] && adjacency[link.to]) {
-        adjacency[link.from].add(link.to);
-        adjacency[link.to].add(link.from);
+      const from = indexById.get(link.from);
+      const to = indexById.get(link.to);
+      if (link && from !== undefined && to !== undefined) {
+        adjacency[from].add(to);
+        adjacency[to].add(from);
       }
     }
     const visited = new Set<number>();
@@ -72,5 +76,5 @@ export function graphLayout(graph: Graph, count: number, layout: GraphLayout) {
     );
   }
   if (count === 1) points[0] = { x: width / 2, y: height / 2 };
-  return { points, width, height };
+  return { points, width, height, nodeIds, indexById };
 }
