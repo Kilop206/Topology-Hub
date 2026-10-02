@@ -190,6 +190,21 @@ class HubApiTest {
       .statusCode(200)
       .body("graph.metadata.note", equalTo("preserved"));
     request()
+      .get("/api/topologies/" + id + "/revisions")
+      .then()
+      .statusCode(200)
+      .body("size()", equalTo(2))
+      .body("[0].revision", equalTo(2))
+      .body("[1].revision", equalTo(1));
+    request()
+      .get("/api/topologies/" + id + "/revisions/1")
+      .then()
+      .statusCode(200)
+      .body("revision", equalTo(1))
+      .body("visibility", equalTo("PRIVATE"))
+      .body("graph.schema_version", equalTo("1.0"))
+      .body("graph.metadata.note", equalTo("preserved"));
+    request()
       .cookie(Sessions.COOKIE, stranger)
       .body(updated)
       .put("/api/topologies/" + id)
