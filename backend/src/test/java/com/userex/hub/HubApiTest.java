@@ -418,6 +418,86 @@ class HubApiTest {
     );
   }
 
+
+  @Test
+  void typedDiscoveryTopologiesPreserveStableNodeIds() {
+    String owner = register();
+    var graph = Map.of(
+      "schema_version",
+      "1.0",
+      "name",
+      "Discovered LAN",
+      "nodes",
+      List.of(
+        Map.of(
+          "id", 10,
+          "external_id", "host:workstation",
+          "label", "Workstation",
+          "type", "computer",
+          "addresses", List.of("192.0.2.10"),
+          "evidence", "local_interface"
+        ),
+        Map.of(
+          "id", 30,
+          "external_id", "device:gateway",
+          "label", "Gateway",
+          "type", "router",
+          "addresses", List.of("192.0.2.1"),
+          "evidence", "default_route"
+        )
+      ),
+      "links",
+      List.of(
+        Map.of("from", 10, "to", 30, "delay", 1, "bandwidth", 100, "loss", 0)
+      )
+    );
+    var input = new HashMap<String, Object>();
+    input.put("title", "Discovery import");
+    input.put("description", "Typed KNS topology");
+    input.put("visibility", "PRIVATE");
+    input.put("graph", graph);
+
+    String id = request()
+      .cookie(Sessions.COOKIE, owner)
+      .body(input)
+      .post("/api/topologies")
+      .then()
+      .statusCode(201)
+      .body("topology.nodeCount", equalTo(2))
+      .body("graph.schema_version", equalTo("1.0"))
+      .body("graph.nodes[0].id", equalTo(10))
+      .body("graph.nodes[1].id", equalTo(30))
+      .extract()
+      .path("topology.id");
+
+    request()
+      .cookie(Sessions.COOKIE, owner)
+      .get("/api/topologies/" + id + "/download")
+      .then()
+      .statusCode(200)
+      .body("nodes[0].external_id", equalTo("host:workstation"))
+      .body("nodes[1].type", equalTo("router"));
+
+    var broken = new HashMap<>(input);
+    broken.put(
+      "graph",
+      Map.of(
+        "schema_version", "1.0",
+        "nodes", graph.get("nodes"),
+        "links", List.of(
+          Map.of("from", 10, "to", 20, "delay", 1, "bandwidth", 100, "loss", 0)
+        )
+      )
+    );
+    request()
+      .cookie(Sessions.COOKIE, owner)
+      .body(broken)
+      .post("/api/topologies")
+      .then()
+      .statusCode(400)
+      .body("path", equalTo("links[0].to"));
+  }
+
   @Test
   void searchAndPaginationAreBounded() {
     String owner = register();

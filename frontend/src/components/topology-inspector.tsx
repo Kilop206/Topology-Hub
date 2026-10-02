@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { date, type Detail } from "@/lib/api";
+import { date, graphNodeById, type Detail } from "@/lib/api";
 import type { GraphSelection } from "@/lib/graph-layout";
 
 const metric = (value: number | null | undefined, unit: string) =>
@@ -32,6 +32,7 @@ export function TopologyInspector({
   const t = data.topology;
   const link = selection?.kind === "link" ? data.graph.links[selection.index] : undefined;
   const node = selection?.kind === "node" ? selection.index : undefined;
+  const nodeData = node === undefined ? undefined : graphNodeById(data.graph, node);
   const incident =
     node === undefined
       ? []
@@ -80,10 +81,50 @@ export function TopologyInspector({
               ) : (
                 <p className="muted">Nó sem conexões.</p>
               )}
-              <p className="field-hint">
-                O arquivo identifica os nós por índice. Nome, tipo e endereço IP não foram
-                fornecidos.
-              </p>
+              {nodeData ? (
+                <>
+                  <dl className="facts">
+                    {nodeData.label && (
+                      <div>
+                        <dt>Nome</dt>
+                        <dd>{nodeData.label}</dd>
+                      </div>
+                    )}
+                    {nodeData.type && (
+                      <div>
+                        <dt>Tipo</dt>
+                        <dd>{nodeData.type}</dd>
+                      </div>
+                    )}
+                    {nodeData.external_id && (
+                      <div>
+                        <dt>Identidade externa</dt>
+                        <dd className="mono">{nodeData.external_id}</dd>
+                      </div>
+                    )}
+                    {nodeData.addresses?.length ? (
+                      <div>
+                        <dt>Endereços</dt>
+                        <dd className="mono">{nodeData.addresses.join(", ")}</dd>
+                      </div>
+                    ) : null}
+                    {nodeData.evidence && (
+                      <div>
+                        <dt>Evidência</dt>
+                        <dd>{nodeData.evidence}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  <p className="field-hint">
+                    Metadados declarados pelo produtor da topologia; evidência de descoberta
+                    não implica identificação física do hardware.
+                  </p>
+                </>
+              ) : (
+                <p className="field-hint">
+                  Topologia legada: o arquivo fornece apenas IDs numéricos para os nós.
+                </p>
+              )}
             </>
           ) : link ? (
             <>
