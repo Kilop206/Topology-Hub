@@ -6,6 +6,8 @@ import {
   api,
   date,
   errorMessage,
+  graphNodeCount,
+  graphNodeIds,
   type Detail,
   type RevisionSummary,
 } from "@/lib/api";
@@ -80,7 +82,8 @@ export function TopologyDetail({ id }: { id: string }) {
     );
   const t = data.topology;
   const editable = user && (user.id === t.ownerId || user.role === "ADMIN");
-  const total = tab === "nodes" ? data.graph.nodes : data.graph.links.length;
+  const nodeIds = graphNodeIds(data.graph);
+  const total = tab === "nodes" ? graphNodeCount(data.graph) : data.graph.links.length;
   const degrees = new Map<number, number>();
   for (const link of data.graph.links) {
     degrees.set(link.from, (degrees.get(link.from) || 0) + 1);
@@ -267,15 +270,7 @@ export function TopologyDetail({ id }: { id: string }) {
                   </thead>
                   <tbody>
                     {tab === "nodes"
-                      ? Array.from(
-                          {
-                            length: Math.max(
-                              0,
-                              Math.min(50, data.graph.nodes - page * 50),
-                            ),
-                          },
-                          (_, i) => page * 50 + i,
-                        ).map((node) => (
+                      ? nodeIds.slice(page * 50, page * 50 + 50).map((node) => (
                           <tr key={node}>
                             <td>
                               <button
