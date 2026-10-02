@@ -204,3 +204,18 @@ instância; para múltiplas réplicas, centralize os limites no gateway ou em Re
 Administradores podem consultar topologias privadas para moderação; essa regra
 é indicada no formulário de visibilidade.
 
+## Immutable revisions
+
+Every successful topology creation or update stores an immutable snapshot in
+`topology_revision`. Revision numbers shown to users start at 1 and are not
+used for optimistic locking; the entity `version` field continues to serve that
+purpose.
+
+Available endpoints:
+
+- `GET /api/topologies/{id}/revisions` lists revision metadata newest first.
+- `GET /api/topologies/{id}/revisions/{revision}` returns the historical graph
+  plus title, description, visibility, author and timestamp.
+
+Visibility checks are inherited from the current topology. Stored/downloaded
+graphs are normalized to `schema_version: "1.0"`.
