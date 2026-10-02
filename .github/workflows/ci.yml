@@ -1,5 +1,9 @@
 name: Validate Topology Hub
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -12,6 +16,7 @@ jobs:
           cache: maven
       - run: mvn -B -ntp verify
         working-directory: backend
+
   frontend:
     runs-on: ubuntu-latest
     steps:
@@ -23,6 +28,68 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
         working-directory: frontend
+      - run: npm run typecheck
+        working-directory: frontend
       - run: npm run build
         working-directory: frontend
 
+  e2e-postgresql:
+    runs-on: ubuntu-latest
+    env:
+      DB_PASSWORD: ci-topology-password
+      HUB_WEB_ORIGIN: http://localhost:3001
+      HUB_COOKIE_SECURE: "false"
+      HUB_ADMIN_EMAIL: admin@test.local
+      HUB_ADMIN_PASSWORD: Test-admin-pass-2026
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Start PostgreSQL, backend and frontend
+        run: docker compose up --build -d
+
+      - name: Wait for web application
+        shell: bash
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent http://localhost:3001/ >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs
+          exit 1
+
+      - name: Install browser tests
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: topology-hub-playwright
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+
+      - name: Show service logs
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
