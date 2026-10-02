@@ -61,6 +61,24 @@ public class TopologyResource {
 
   public record Listing(List<Summary> items, long total, int page, int size) {}
 
+  public record RevisionSummary(
+    long revision,
+    Instant createdAt,
+    UUID actorId,
+    String actorName
+  ) {}
+
+  public record RevisionDetail(
+    long revision,
+    String title,
+    String description,
+    String visibility,
+    Instant createdAt,
+    UUID actorId,
+    String actorName,
+    JsonNode graph
+  ) {}
+
   Summary summary(Topology t) {
     try {
       JsonNode graph = mapper.readTree(t.graph);
@@ -189,6 +207,7 @@ public class TopologyResource {
     topology.owner = owner;
     apply(topology, input);
     topology.persistAndFlush();
+    recordRevision(topology, owner);
     AuditEvent.record(owner, "topology.create", topology.id);
     return Response.status(201).entity(detail(topology)).build();
   }
@@ -206,10 +225,61 @@ public class TopologyResource {
       "Esta topologia mudou. Recarregue antes de salvar."
     );
     Graphs.validate(input.graph());
+    User actor = sessions.require(headers);
     apply(t, input);
     t.flush();
-    AuditEvent.record(sessions.require(headers), "topology.update", id);
+    recordRevision(t, actor);
+    AuditEvent.record(actor, "topology.update", id);
     return detail(t);
+  }
+
+  @GET
+  @Path("/{id}/revisions")
+  public List<RevisionSummary> revisions(@PathParam("id") UUID id) {
+    Topology t = accessible(id);
+    return TopologyRevision.<TopologyRevision>list(
+      "topology = ?1 order by revision desc",
+      t
+    )
+      .stream()
+      .map(revision -> new RevisionSummary(
+        revision.revision,
+        revision.createdAt,
+        revision.actor.id,
+        revision.actor.displayName
+      ))
+      .toList();
+  }
+
+  @GET
+  @Path("/{id}/revisions/{revision}")
+  public RevisionDetail revision(
+    @PathParam("id") UUID id,
+    @PathParam("revision") long revisionNumber
+  ) {
+    Topology t = accessible(id);
+    TopologyRevision revision = TopologyRevision.find(
+      "topology = ?1 and revision = ?2",
+      t,
+      revisionNumber
+    ).firstResult();
+    if (revision == null) {
+      throw new ApiException(404, "Revisão não encontrada.");
+    }
+    try {
+      return new RevisionDetail(
+        revision.revision,
+        revision.title,
+        revision.description,
+        revision.visibility,
+        revision.createdAt,
+        revision.actor.id,
+        revision.actor.displayName,
+        mapper.readTree(revision.graph)
+      );
+    } catch (java.io.IOException exception) {
+      throw new IllegalStateException(exception);
+    }
   }
 
   @DELETE
@@ -233,6 +303,18 @@ public class TopologyResource {
         "attachment; filename=\"topology-" + id + ".json\""
       )
       .build();
+  }
+
+  private void recordRevision(Topology topology, User actor) {
+    var revision = new TopologyRevision();
+    revision.topology = topology;
+    revision.revision = topology.version + 1;
+    revision.title = topology.title;
+    revision.description = topology.description;
+    revision.visibility = topology.visibility;
+    revision.graph = topology.graph;
+    revision.actor = actor;
+    revision.persist();
   }
 
   private void apply(Topology t, Input input) {
