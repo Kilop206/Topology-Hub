@@ -25,7 +25,8 @@ public class AdminResource {
 
   public record Update(
     @NotNull @Pattern(regexp = "ADMIN|USER") String role,
-    @NotNull Boolean active
+    @NotNull Boolean active,
+    @Pattern(regexp = "FREE|PRO|INTERNAL") String plan
   ) {}
 
   @GET
@@ -94,6 +95,7 @@ public class AdminResource {
     ) throw new ApiException(409, "Mantenha ao menos um administrador ativo.");
     user.role = input.role();
     user.active = input.active();
+    if (input.plan() != null) user.plan = input.plan();
     HubSession.delete("user.id", id);
     AuditEvent.record(actor, "user.access.update", id);
     return user.view();
