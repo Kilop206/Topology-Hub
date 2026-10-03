@@ -25,7 +25,8 @@ public class AdminResource {
 
   public record Update(
     @NotNull @Pattern(regexp = "ADMIN|USER") String role,
-    @NotNull Boolean active
+    @NotNull Boolean active,
+    @Pattern(regexp = "FREE|PRO|INTERNAL") String plan
   ) {}
 
   @GET
@@ -92,10 +93,22 @@ public class AdminResource {
       (!input.active() || !input.role().equals("ADMIN")) &&
       admins.size() <= 1
     ) throw new ApiException(409, "Mantenha ao menos um administrador ativo.");
+    boolean accessChanged =
+      !user.role.equals(input.role()) || user.active != input.active();
+    boolean planChanged =
+      input.plan() != null && !user.plan.equals(input.plan());
+
     user.role = input.role();
     user.active = input.active();
-    HubSession.delete("user.id", id);
-    AuditEvent.record(actor, "user.access.update", id);
+    if (input.plan() != null) user.plan = input.plan();
+
+    if (accessChanged) {
+      HubSession.delete("user.id", id);
+      AuditEvent.record(actor, "user.access.update", id);
+    }
+    if (planChanged) {
+      AuditEvent.record(actor, "user.plan.update", id);
+    }
     return user.view();
   }
 

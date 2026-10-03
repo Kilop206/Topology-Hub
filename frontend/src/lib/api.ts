@@ -4,6 +4,7 @@ export type User = {
   displayName: string;
   role: "USER" | "ADMIN";
   active: boolean;
+  plan: "FREE" | "PRO" | "INTERNAL";
   createdAt: string;
 };
 export type GraphNode = {

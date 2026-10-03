@@ -27,6 +27,9 @@ public class User extends PanacheEntityBase {
   @Column(nullable = false)
   public boolean active = true;
 
+  @Column(nullable = false, length = 16)
+  public String plan = "FREE";
+
   @Column(length = 20)
   public String provider;
 
@@ -41,7 +44,7 @@ public class User extends PanacheEntityBase {
   }
 
   public View view() {
-    return new View(id, email, displayName, role, active, createdAt);
+    return new View(id, email, displayName, role, active, plan, createdAt);
   }
 
   public record View(
@@ -50,6 +53,7 @@ public class User extends PanacheEntityBase {
     String displayName,
     String role,
     boolean active,
+    String plan,
     Instant createdAt
   ) {}
 }

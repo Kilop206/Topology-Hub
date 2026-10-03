@@ -57,12 +57,20 @@ export function Admin() {
       });
     return () => abort.abort();
   }, [user, page, refresh]);
-  async function change(target: User, role: User["role"], active: boolean) {
+  async function change(
+    target: User,
+    role: User["role"],
+    active: boolean,
+    plan: User["plan"] = target.plan,
+  ) {
+    const accessChanged = role !== target.role || active !== target.active;
     if (
       !confirm(
-        "Alterar o acesso de " +
-          target.displayName +
-          "? As sessões existentes serão encerradas.",
+        accessChanged
+          ? "Alterar o acesso de " +
+              target.displayName +
+              "? As sessões existentes serão encerradas."
+          : "Alterar o plano de inteligência de " + target.displayName + "?",
       )
     )
       return;
@@ -70,7 +78,7 @@ export function Admin() {
     try {
       await api("/admin/users/" + target.id, {
         method: "PATCH",
-        body: JSON.stringify({ role, active }),
+        body: JSON.stringify({ role, active, plan }),
       });
       setRefresh((r) => r + 1);
     } catch (e) {
@@ -165,6 +173,7 @@ export function Admin() {
                 <tr>
                   <th>Usuário</th>
                   <th>Perfil</th>
+                  <th>Plano IA</th>
                   <th>Status</th>
                   <th>Ações</th>
                 </tr>
@@ -187,6 +196,25 @@ export function Admin() {
                       >
                         <option value="USER">Usuário</option>
                         <option value="ADMIN">Administrador</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        aria-label={"Plano de " + u.displayName}
+                        disabled={u.id === user.id || !!busy}
+                        value={u.plan}
+                        onChange={(e) =>
+                          change(
+                            u,
+                            u.role,
+                            u.active,
+                            e.target.value as User["plan"],
+                          )
+                        }
+                      >
+                        <option value="FREE">Free</option>
+                        <option value="PRO">Pro</option>
+                        <option value="INTERNAL">Internal</option>
                       </select>
                     </td>
                     <td>
@@ -267,6 +295,7 @@ export function Admin() {
                         "topology.update": "Topologia atualizada",
                         "topology.delete": "Topologia excluída",
                         "user.access.update": "Acesso alterado",
+                        "user.plan.update": "Plano de inteligência alterado",
                       }[a.action] || a.action}
                     </td>
                     <td className="id-cell">{a.targetId}</td>
