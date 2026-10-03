@@ -63,11 +63,14 @@ export function Admin() {
     active: boolean,
     plan: User["plan"] = target.plan,
   ) {
+    const accessChanged = role !== target.role || active !== target.active;
     if (
       !confirm(
-        "Alterar o acesso de " +
-          target.displayName +
-          "? As sessões existentes serão encerradas.",
+        accessChanged
+          ? "Alterar o acesso de " +
+              target.displayName +
+              "? As sessões existentes serão encerradas."
+          : "Alterar o plano de inteligência de " + target.displayName + "?",
       )
     )
       return;
@@ -292,6 +295,7 @@ export function Admin() {
                         "topology.update": "Topologia atualizada",
                         "topology.delete": "Topologia excluída",
                         "user.access.update": "Acesso alterado",
+                        "user.plan.update": "Plano de inteligência alterado",
                       }[a.action] || a.action}
                     </td>
                     <td className="id-cell">{a.targetId}</td>
