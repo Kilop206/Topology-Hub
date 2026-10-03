@@ -97,6 +97,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <>
               <span className="avatar">{user.displayName.slice(0, 1).toUpperCase()}</span>
               <span className="account-name">{user.displayName}</span>
+              <small className="tech-label">IA {user.plan}</small>
 
               <button
                 className="icon-button"
