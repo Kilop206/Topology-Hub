@@ -553,4 +553,57 @@ class HubApiTest {
       .body("topology.metrics.meanLinkDelayMs", nullValue())
       .body("topology.metrics.minimumBandwidthMbps", nullValue());
   }
+
+  @Test
+  void desktopTokenCanAccessPrivateTopologyAndIsRevocable() {
+    String owner = register();
+    String topologyId = request()
+      .cookie(Sessions.COOKIE, owner)
+      .body(topology("PRIVATE"))
+      .post("/api/topologies")
+      .then()
+      .statusCode(201)
+      .extract()
+      .path("topology.id");
+
+    var created = request()
+      .cookie(Sessions.COOKIE, owner)
+      .body(Map.of("name", "KNS desktop"))
+      .post("/api/auth/tokens");
+    created.then().statusCode(201).body("token", startsWith("knsh_"));
+    String token = created.path("token");
+    String tokenId = created.path("id");
+
+    request()
+      .header("Authorization", "Bearer " + token)
+      .get("/api/topologies/" + topologyId)
+      .then()
+      .statusCode(200)
+      .body("topology.visibility", equalTo("PRIVATE"));
+
+    var updated = topology("PRIVATE");
+    updated.put("title", "Edited from KNS");
+    updated.put("version", 0);
+    request()
+      .header("Authorization", "Bearer " + token)
+      .body(updated)
+      .put("/api/topologies/" + topologyId)
+      .then()
+      .statusCode(200)
+      .body("topology.title", equalTo("Edited from KNS"))
+      .body("topology.version", equalTo(1));
+
+    request()
+      .cookie(Sessions.COOKIE, owner)
+      .delete("/api/auth/tokens/" + tokenId)
+      .then()
+      .statusCode(204);
+
+    request()
+      .header("Authorization", "Bearer " + token)
+      .get("/api/topologies/" + topologyId)
+      .then()
+      .statusCode(404);
+  }
+
 }

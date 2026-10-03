@@ -219,3 +219,29 @@ Available endpoints:
 
 Visibility checks are inherited from the current topology. Stored/downloaded
 graphs are normalized to `schema_version: "1.0"`.
+
+
+## Tokens de desktop do KNS
+
+Uma sessão web autenticada pode criar credenciais revogáveis para clientes
+desktop em `/api/auth/tokens`. O segredo retornado começa com `knsh_` e é
+mostrado apenas na resposta de criação; o banco persiste somente o hash SHA-256.
+
+```http
+POST /api/auth/tokens
+X-Hub-Request: 1
+Cookie: hub_session=...
+
+{"name":"KNS desktop"}
+```
+
+Use o valor retornado como `Authorization: Bearer knsh_...` nos endpoints
+existentes de topologia. O bearer respeita exatamente as mesmas regras de
+visibilidade, proprietário/admin, validação e versão otimista. A listagem de
+tokens nunca retorna o segredo e `DELETE /api/auth/tokens/{id}` o revoga
+imediatamente.
+
+No KNS, configure `KNS_TOPOLOGY_HUB_TOKEN`. Topologias privadas podem então ser
+abertas pelo ID e alterações salvas no mesmo documento; cada PUT continua
+criando uma revisão imutável. A criação/revogação de tokens exige sessão web e
+não pode ser feita usando outro desktop token.

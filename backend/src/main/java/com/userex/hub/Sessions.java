@@ -41,6 +41,19 @@ public class Sessions {
   }
 
   public User optional(HttpHeaders headers) {
+    User browser = optionalBrowser(headers);
+    if (browser != null) return browser;
+
+    String authorization = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
+    if (authorization == null || !authorization.startsWith("Bearer ")) return null;
+    String raw = authorization.substring("Bearer ".length()).strip();
+    if (!raw.startsWith("knsh_") || raw.length() != 48) return null;
+
+    DesktopToken token = DesktopToken.find("tokenHash = ?1 and revokedAt is null", hash(raw)).firstResult();
+    return token != null && token.user.active ? token.user : null;
+  }
+
+  public User optionalBrowser(HttpHeaders headers) {
     Cookie cookie = headers.getCookies().get(COOKIE);
     if (cookie == null || cookie.getValue().length() != 43) return null;
     HubSession session = HubSession.findById(hash(cookie.getValue()));
@@ -49,6 +62,12 @@ public class Sessions {
       session.user.active
       ? session.user
       : null;
+  }
+
+  public User requireBrowser(HttpHeaders headers) {
+    User user = optionalBrowser(headers);
+    if (user == null) throw new ApiException(401, "Entre no site para gerenciar tokens.");
+    return user;
   }
 
   public User require(HttpHeaders headers) {
