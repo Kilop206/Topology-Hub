@@ -32,6 +32,20 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           test "$(tr -d '\r\n' < VERSION)" = "$VERSION"
+          python - "$VERSION" <<'PY'
+          import json
+          import sys
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          expected = sys.argv[1]
+          root = ET.parse("backend/pom.xml").getroot()
+          ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+          backend = root.find("m:version", ns).text
+          frontend = json.loads(Path("frontend/package.json").read_text())["version"]
+          if backend != expected or frontend != expected:
+              raise SystemExit(f"Hub versions do not match tag: backend={backend}, frontend={frontend}, tag={expected}")
+          PY
 
       - uses: docker/setup-buildx-action@v3
 
