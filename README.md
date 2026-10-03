@@ -245,3 +245,34 @@ No KNS, configure `KNS_TOPOLOGY_HUB_TOKEN`. Topologias privadas podem então ser
 abertas pelo ID e alterações salvas no mesmo documento; cada PUT continua
 criando uma revisão imutável. A criação/revogação de tokens exige sessão web e
 não pode ser feita usando outro desktop token.
+
+
+## Intelligence entitlements
+
+Topology Hub is the identity and plan authority for KNS intelligence. New users
+start on `FREE`; administrators can assign `PRO` or `INTERNAL` from the
+administration UI or the existing user PATCH endpoint.
+
+Baseline policy:
+
+| Plan | KiWi intelligence | Daily accepted requests |
+| --- | --- | ---: |
+| FREE | disabled | 0 |
+| PRO | enabled | 100 |
+| INTERNAL | enabled | unlimited |
+
+Authenticated browser sessions and revocable `knsh_` desktop tokens can resolve
+their current product decision at:
+
+```http
+GET /api/auth/entitlements
+Authorization: Bearer knsh_...
+```
+
+The response contains only the stable user subject, plan, whether intelligence is
+enabled, and the daily intelligence quota. Sentient KNS consumes this endpoint;
+KiWi never receives account, plan, token, or billing information.
+
+This is an entitlement boundary, not a payment processor. A future billing
+provider should change the Hub plan after a verified subscription event instead
+of coupling billing logic to Sentient or KiWi.
