@@ -19,6 +19,12 @@ public final class Graphs {
     "network_segment"
   );
 
+  private static final Set<String> LINK_MODES = Set.of(
+    "full_duplex",
+    "half_duplex",
+    "simplex"
+  );
+
   private Graphs() {}
 
   public static void validate(JsonNode graph) {
@@ -76,6 +82,31 @@ public final class Graphs {
       metric(link, "delay", 0, Double.MAX_VALUE, path);
       metric(link, "bandwidth", Double.MIN_VALUE, Double.MAX_VALUE, path);
       metric(link, "loss", 0, 1, path);
+
+      JsonNode mode = link.get("mode");
+      if (mode != null && (!mode.isTextual() || !LINK_MODES.contains(mode.asText()))) {
+        throw new ApiException(400, "Modo de conexão inválido.", path + ".mode");
+      }
+
+      JsonNode queueCapacity = link.get("queue_capacity");
+      if (
+        queueCapacity != null &&
+        (!queueCapacity.isIntegralNumber() ||
+          !queueCapacity.canConvertToInt() ||
+          queueCapacity.asInt() < 0)
+      ) {
+        throw new ApiException(400, "queue_capacity inválido.", path + ".queue_capacity");
+      }
+
+      JsonNode inferred = link.get("inferred");
+      if (inferred != null && !inferred.isBoolean()) {
+        throw new ApiException(400, "inferred deve ser booleano.", path + ".inferred");
+      }
+
+      JsonNode evidence = link.get("evidence");
+      if (evidence != null && !evidence.isTextual()) {
+        throw new ApiException(400, "evidence deve ser texto.", path + ".evidence");
+      }
     }
   }
 
@@ -137,6 +168,26 @@ public final class Graphs {
           if (!address.isTextual()) {
             throw new ApiException(400, "addresses deve conter apenas texto.", path + ".addresses");
           }
+        }
+      }
+
+      JsonNode position = node.get("position");
+      if (position != null) {
+        if (!position.isObject()) {
+          throw new ApiException(400, "position deve ser um objeto.", path + ".position");
+        }
+        for (String axis : new String[] { "x", "y" }) {
+          JsonNode value = position.get(axis);
+          if (
+            value == null ||
+            !value.isNumber() ||
+            !Double.isFinite(value.asDouble())
+          ) {
+            throw new ApiException(400, "Coordenada de posição inválida.", path + ".position." + axis);
+          }
+        }
+        if (position.size() != 2) {
+          throw new ApiException(400, "position aceita apenas x e y.", path + ".position");
         }
       }
     }
